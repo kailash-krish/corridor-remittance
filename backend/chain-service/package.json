@@ -1,0 +1,30 @@
+{
+  "name": "remittance-chain-service",
+  "version": "1.0.0",
+  "description": "Blockchain & Wallet Layer — Cross-Border Remittance Platform",
+  "main": "src/index.ts",
+  "scripts": {
+    "compile": "hardhat compile",
+    "node": "hardhat node",
+    "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
+    "deploy:sepolia": "hardhat run scripts/deploy.ts --network sepolia",
+    "test": "hardhat test",
+    "test:integration": "hardhat test test/integration.test.ts --network localhost",
+    "listener": "tsx src/listener.ts",
+    "typechain": "hardhat typechain"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.0",
+    "@supabase/supabase-js": "^2.49.1",
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.7",
+    "ethers": "^6.13.0",
+    "tsx": "^4.19.3"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@types/node": "^22.13.9",
+    "hardhat": "^2.22.0",
+    "typescript": "^5.8.2"
+  }
+}

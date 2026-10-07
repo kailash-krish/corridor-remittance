@@ -1,0 +1,144 @@
+@config "../../tailwind.config.js";
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --background: 0 0% 2%;
+    --foreground: 195 30% 96%;
+    --card: 205 35% 8% / 0.78;
+    --card-foreground: 210 40% 98%;
+    --popover: 205 38% 7% / 0.98;
+    --popover-foreground: 210 40% 98%;
+    --primary: 190 100% 45%;
+    --primary-foreground: 202 70% 6%;
+    --secondary: 190 40% 90% / 0.07;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 190 35% 88% / 0.07;
+    --muted-foreground: 198 16% 68%;
+    --accent: 190 100% 50% / 0.15;
+    --accent-foreground: 187 90% 82%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 190 45% 82% / 0.13;
+    --input: 190 45% 82% / 0.17;
+    --ring: 190 100% 55%;
+    --accent-gradient: linear-gradient(110deg, #00cfff 0%, #3b82f6 100%);
+    --status-open: 217 91% 60%;
+    --status-progress: 38 92% 50%;
+    --status-closed: 142 71% 45%;
+    --status-overdue: 0 84% 60%;
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.35);
+    color: hsl(var(--foreground));
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/30;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Glass morphism utility */
+  .glass {
+    @apply rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl;
+  }
+
+  /* Gradient text utility */
+  .gradient-text {
+    background-image: var(--accent-gradient);
+    @apply bg-clip-text text-transparent;
+  }
+
+  .bg-accent-gradient {
+    background-image: var(--accent-gradient);
+  }
+
+  .dashboard-canvas {
+    background-color: transparent;
+    background-image:
+      radial-gradient(ellipse 75% 42% at 50% 0%, rgb(0 207 255 / 0.075), transparent 72%),
+      linear-gradient(140deg, rgb(4 15 22 / 0.32), transparent 58%);
+  }
+
+  .status-open,
+  .status-progress,
+  .status-closed,
+  .status-overdue {
+    border: 1px solid currentColor;
+  }
+
+  .status-open {
+    color: hsl(var(--status-open));
+    background-color: hsl(var(--status-open) / 0.12);
+    border-color: hsl(var(--status-open) / 0.28);
+  }
+
+  .status-progress {
+    color: hsl(var(--status-progress));
+    background-color: hsl(var(--status-progress) / 0.12);
+    border-color: hsl(var(--status-progress) / 0.28);
+  }
+
+  .status-closed {
+    color: hsl(var(--status-closed));
+    background-color: hsl(var(--status-closed) / 0.12);
+    border-color: hsl(var(--status-closed) / 0.28);
+  }
+
+  .status-overdue {
+    color: hsl(var(--status-overdue));
+    background-color: hsl(var(--status-overdue) / 0.12);
+    border-color: hsl(var(--status-overdue) / 0.28);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

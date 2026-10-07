@@ -1,0 +1,16 @@
+{
+  "name": "corridor-hackathon",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run build --prefix backend && node scripts/sync-hosted-core.mjs && npm run build --prefix frontend",
+    "test": "npm test --prefix backend && npm test --prefix mcp",
+    "test:integration": "node tests/integration.mjs",
+    "mcp": "npm start --prefix mcp",
+    "test:pages": "node tests/pages.mjs",
+    "test:analytics": "node --test tests/analytics.test.mjs",
+    "test:hosted": "node --test tests/hosted.test.mjs"
+  }
+}

@@ -1,0 +1,25 @@
+'use client';
+import {useEffect,useState} from 'react';import {usePathname} from 'next/navigation';import Link from 'next/link';import {publicPaths} from '@/lib/remittance/site';
+import {analyticsPage,analyticsAllowed} from '@/lib/remittance/analytics-policy';
+type Consent='accepted'|'declined'|'unset';
+const measurementId=process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID||'';
+const configured=/^G-[A-Z0-9]+$/.test(measurementId);const storageKey='corridor.analytics-consent.v1';
+type AnalyticsWindow=Window&{dataLayer?:unknown[];gtag?:(...args:unknown[])=>void;[key:`ga-disable-${string}`]:boolean|undefined};
+const analyticsWindow=()=>window as unknown as AnalyticsWindow;
+function readConsent():Consent{try{const saved=localStorage.getItem(storageKey);return saved==='accepted'||saved==='declined'?saved:'unset'}catch{return'unset'}}
+function storeConsent(value:Consent){try{localStorage.setItem(storageKey,value)}catch{/* The current page still honors the choice when browser storage is blocked. */}window.dispatchEvent(new CustomEvent('corridor-consent',{detail:value}));}
+function clearAnalyticsCookies(){const parts=location.hostname.split('.');const domains=['',location.hostname,...parts.map((_,i)=>'.'+parts.slice(i).join('.')).filter(d=>d.split('.').length>2)];for(const entry of document.cookie.split(';')){const name=entry.trim().split('=')[0];if(!/^_ga(?:_|$)/.test(name))continue;for(const domain of domains)document.cookie=`${name}=; Max-Age=0; Path=/; SameSite=Lax${domain?`; Domain=${domain}`:''}`}}
+function useConsent(){const [consent,setConsent]=useState<Consent>('unset');const [ready,setReady]=useState(false);useEffect(()=>{setConsent(readConsent());setReady(true);const update=(event:Event)=>setConsent((event as CustomEvent<Consent>).detail);const storage=(event:StorageEvent)=>{if(event.key===storageKey)setConsent(readConsent())};window.addEventListener('corridor-consent',update);window.addEventListener('storage',storage);return()=>{window.removeEventListener('corridor-consent',update);window.removeEventListener('storage',storage)}},[]);return{consent,ready}}
+export function AnalyticsPreferences(){const {consent,ready}=useConsent();return <div className="analytics-preferences"><p>{configured?'Optional analytics helps us understand visits to public pages. Your login and transfer workspace are excluded.':'Google Analytics is not configured on this instance. No analytics requests are sent. You can save a preference for when it is configured.'}</p><div className="panel-actions"><button className="button outline" aria-pressed={consent==='declined'} onClick={()=>storeConsent('declined')}>Decline analytics</button><button className="button green" aria-pressed={consent==='accepted'} onClick={()=>storeConsent('accepted')}>Allow analytics</button></div><p role="status">Current preference: {ready?consent==='accepted'?'allowed':consent==='declined'?'declined':'not chosen':'loading'}.</p></div>}
+export default function Analytics(){const pathname=usePathname();const {consent,ready}=useConsent();const allowed=(publicPaths as readonly string[]).includes(pathname);
+ useEffect(()=>{if(!configured)return;const w=analyticsWindow();const canTrack=analyticsAllowed(measurementId,consent,pathname);w[`ga-disable-${measurementId}`]=!canTrack;if(!canTrack){if(consent==='declined'){w.gtag?.('consent','update',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});clearAnalyticsCookies()}return}
+  const page=analyticsPage(pathname,window.location.origin)!;
+  w.dataLayer=w.dataLayer||[];w.gtag=w.gtag||function(){w.dataLayer?.push(arguments)};
+  function pageView(){if(w[`ga-disable-${measurementId}`])return;w.gtag?.('set',page);w.gtag?.('event','page_view',page)}
+  let script=document.getElementById('corridor-ga') as HTMLScriptElement|null;
+  if(!script){w.gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});w.gtag('consent','update',{analytics_storage:'granted'});w.gtag('js',new Date());w.gtag('config',measurementId,{send_page_view:false,allow_google_signals:false,allow_ad_personalization_signals:false,cookie_flags:location.protocol==='https:'?'SameSite=Lax;Secure':'SameSite=Lax',...page});script=document.createElement('script');script.id='corridor-ga';script.async=true;script.src=`https://www.googletagmanager.com/gtag/js?id=${measurementId}`;document.head.appendChild(script)}else w.gtag('consent','update',{analytics_storage:'granted'});
+  pageView();
+ },[consent,pathname,allowed]);
+ if(!configured||!ready||!allowed||consent!=='unset')return null;
+ return <aside className="consent-banner" aria-label="Optional analytics preference"><div><strong>A small note on privacy.</strong><p>May we use Google Analytics to understand public-page visits? Transfer details stay out of analytics. <Link href="/privacy#analytics-preferences">Read more</Link></p></div><div><button className="button outline small" onClick={()=>storeConsent('declined')}>No thanks</button><button className="button green small" onClick={()=>storeConsent('accepted')}>Allow analytics</button></div></aside>
+}

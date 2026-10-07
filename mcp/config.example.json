@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "corridor": {
+      "command": "node",
+      "args": ["/absolute/path/to/hackathon-project/mcp/server.mjs"],
+      "env": {
+        "CORRIDOR_API_URL": "http://127.0.0.1:4100",
+        "CORRIDOR_ACCESS_TOKEN": "authenticated-user-jwt"
+      }
+    }
+  }
+}

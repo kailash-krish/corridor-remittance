@@ -1,0 +1,13 @@
+**/node_modules/
+**/.next/
+**/dist/
+**/.env
+**/.env.*
+!**/.env.example
+**/*.tsbuildinfo
+**/.vercel/
+**/.DS_Store
+**/coverage/
+**/*.log
+deployment/
+release/

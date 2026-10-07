@@ -1,0 +1,3 @@
+'use client';
+import {useEffect} from 'react';import Link from 'next/link';import {RefreshCw} from 'lucide-react';
+export default function ErrorPage({reset}:{error:Error&{digest?:string};reset:()=>void}){useEffect(()=>{document.title='Something went wrong | Corridor'},[]);return <main className="not-found wrap"><p className="eyebrow">LET’S TRY THAT AGAIN</p><h1>We hit a small interruption.</h1><p>The page could not load correctly. Try again or return home.</p><div className="hero-actions"><button className="button green" onClick={reset}>Try again<RefreshCw size={16}/></button><Link href="/" className="button outline">Back to home</Link></div></main>}
