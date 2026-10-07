@@ -52,7 +52,7 @@ export class FiatInSimulator {
     const webhookPayload: FiatInWebhookPayload = {
       webhookId: `WH-IN-${crypto.randomBytes(4).toString("hex").toUpperCase()}`,
       transferId,
-      bankReference: overrides?.bankReference || `UAE-BANK-REF-${Date.now()}`,
+      bankReference: overrides?.bankReference || `DEMO-${transfer.source_currency}-BANK-${Date.now()}`,
       senderIban: transfer.sender_account_id || "AE290331234567890123456",
       depositedAmountMinor: overrides?.depositedAmountMinor ?? depositedAmount,
       expectedAmountMinor: expectedAmount,

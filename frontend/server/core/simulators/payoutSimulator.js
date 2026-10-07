@@ -28,7 +28,7 @@ class PayoutSimulator {
         payoutAttempts.set(transferId, currentAttempt);
         const maxAttempts = 2; // Retry once before marking terminal failure and initiating refund
         const payoutRef = mode === "success"
-            ? `IMPS-SETTLED-${node_crypto_1.default.randomBytes(4).toString("hex").toUpperCase()}`
+            ? `${transfer.target_currency === "INR" ? "IMPS" : "DEMO-" + transfer.target_currency}-SETTLED-${node_crypto_1.default.randomBytes(4).toString("hex").toUpperCase()}`
             : `FAIL-RETRY-${node_crypto_1.default.randomBytes(3).toString("hex").toUpperCase()}`;
         const failureReason = mode === "failed"
             ? overrides?.failureReason ||
@@ -38,7 +38,7 @@ class PayoutSimulator {
             webhookId: `WH-OUT-${node_crypto_1.default.randomBytes(4).toString("hex").toUpperCase()}`,
             transferId,
             payoutReference: overrides?.payoutReference || payoutRef,
-            rail: transfer.recipient_details.upi_id ? "UPI" : "IMPS",
+            rail: transfer.target_currency !== "INR" ? "DEMO_BANK" : transfer.recipient_details.upi_id ? "UPI" : "IMPS",
             recipientDetails: transfer.recipient_details,
             amountMinor: transfer.receive_amount_minor,
             currency: transfer.target_currency,

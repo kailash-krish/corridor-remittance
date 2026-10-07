@@ -11,7 +11,7 @@ export interface PayoutWebhookPayload {
   webhookId: string;
   transferId: string;
   payoutReference: string;
-  rail: "IMPS" | "UPI" | "NEFT";
+  rail: "IMPS" | "UPI" | "NEFT" | "DEMO_BANK";
   recipientDetails: Record<string, unknown>;
   amountMinor: number;
   currency: string;
@@ -53,7 +53,7 @@ export class PayoutSimulator {
 
     const payoutRef =
       mode === "success"
-        ? `IMPS-SETTLED-${crypto.randomBytes(4).toString("hex").toUpperCase()}`
+        ? `${transfer.target_currency==="INR"?"IMPS":"DEMO-"+transfer.target_currency}-SETTLED-${crypto.randomBytes(4).toString("hex").toUpperCase()}`
         : `FAIL-RETRY-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
 
     const failureReason =
@@ -66,7 +66,7 @@ export class PayoutSimulator {
       webhookId: `WH-OUT-${crypto.randomBytes(4).toString("hex").toUpperCase()}`,
       transferId,
       payoutReference: overrides?.payoutReference || payoutRef,
-      rail: transfer.recipient_details.upi_id ? "UPI" : "IMPS",
+      rail: transfer.target_currency!=="INR"?"DEMO_BANK":transfer.recipient_details.upi_id ? "UPI" : "IMPS",
       recipientDetails: transfer.recipient_details as unknown as Record<string, unknown>,
       amountMinor: transfer.receive_amount_minor,
       currency: transfer.target_currency,

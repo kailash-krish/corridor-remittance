@@ -3,6 +3,7 @@ import {jwtVerify} from 'jose';
 import {runPersistedRequest} from './session-engine.mjs';
 import {blobStore} from './blob-store';
 export async function hostedHandler(req:NextRequest,path:string,token?:string){
+ if(path==='quotes/estimate'&&req.method==='GET'){const {fxService}=await import('./core/services/fxService.js');try{const q=req.nextUrl.searchParams;const data=await fxService.calculateQuote(q.get('source')||'',q.get('target')||'',Number(q.get('amount')));return NextResponse.json({data},{headers:{'Cache-Control':'no-store'}})}catch(error){const e=error as {statusCode?:number;message?:string};return NextResponse.json({error:{message:e.message||'Rates unavailable'}},{status:e.statusCode||503})}}
  const configured=!!(process.env.BLOB_READ_WRITE_TOKEN||process.env.BLOB_STORE_ID);
  if(path==='health')return NextResponse.json({status:configured?'ok':'unconfigured',mode:'hosted-demo',storage:'private-blob'},{status:configured?200:503});
  if(!configured||!process.env.DEMO_JWT_SECRET)return NextResponse.json({error:{message:'The hosted demo is not configured yet.'}},{status:503});

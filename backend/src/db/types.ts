@@ -49,6 +49,9 @@ export interface Quote {
   receive_amount_minor: number;
   fee_minor: number;
   exchange_rate: number;
+  rate_provider?: string;
+  rate_date?: string;
+  send_aed_minor?: number;
   expires_at: string;
   is_consumed: boolean;
   consumed_at: string | null;
@@ -75,6 +78,9 @@ export interface Transfer {
   receive_amount_minor: number;
   fee_minor: number;
   exchange_rate: number;
+  rate_provider?: string;
+  rate_date?: string;
+  send_aed_minor?: number;
   sender_account_id: string | null;
   recipient_details: RecipientDetails;
   blockchain_tx_hash: string | null;

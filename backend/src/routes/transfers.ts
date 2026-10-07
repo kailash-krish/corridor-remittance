@@ -187,7 +187,7 @@ transfersRouter.post(
         metadata: {
           depositedAmountMinor: transfer.send_amount_minor,
           sourceCurrency: transfer.source_currency,
-          bankReference: req.body.bankReference || `MOCK-UAE-BANK-${Date.now()}`
+          bankReference: req.body.bankReference || `DEMO-${transfer.source_currency}-BANK-${Date.now()}`
         }
       });
 

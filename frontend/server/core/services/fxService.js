@@ -1,72 +1,103 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fxService = exports.FxService = void 0;
+exports.fxService = exports.FxService = exports.referenceRates = exports.ReferenceRates = exports.getCurrency = exports.currencies = void 0;
+exports.convertMinor = convertMinor;
+const currencies_json_1 = __importDefault(require("../config/currencies.json"));
+exports.currencies = currencies_json_1.default;
 const errors_js_1 = require("../utils/errors.js");
-// Standard base exchange rates for supported remittance corridors
-const BASE_FX_RATES = {
-    "AED_INR": 22.705,
-    "USD_INR": 83.250,
-    "EUR_INR": 90.150,
-    "GBP_INR": 105.400,
-    "AED_USD": 0.2723,
-    "USD_AED": 3.6725
+const getCurrency = (code) => {
+    const item = currencies_json_1.default.find(c => c.code === code.toUpperCase());
+    if (!item)
+        throw new errors_js_1.BadRequestError(`Unsupported currency: ${code}`);
+    return item;
 };
-// Default flat fee in minor units per source currency (e.g. 500 fils = 5.00 AED)
-const FLAT_FEE_MINOR = {
-    AED: 500, // 5 AED
-    USD: 200, // 2 USD
-    EUR: 200, // 2 EUR
-    GBP: 150 // 1.50 GBP
-};
-// Percentage fee: 0.5% (50 basis points)
-const PERCENTAGE_FEE_RATE = 0.005;
-class FxService {
-    /**
-     * Retrieves exchange rate with a simulated micro-drift (±0.05%)
-     */
-    getRate(sourceCurrency, targetCurrency) {
-        const key = `${sourceCurrency.toUpperCase()}_${targetCurrency.toUpperCase()}`;
-        const baseRate = BASE_FX_RATES[key];
-        if (!baseRate) {
-            // Check reverse rate
-            const reverseKey = `${targetCurrency.toUpperCase()}_${sourceCurrency.toUpperCase()}`;
-            const reverseBase = BASE_FX_RATES[reverseKey];
-            if (reverseBase) {
-                return Number((1 / reverseBase).toFixed(6));
-            }
-            throw new errors_js_1.BadRequestError(`Unsupported currency corridor: ${sourceCurrency} to ${targetCurrency}`);
-        }
-        // Micro drift to simulate live market fluctuations
-        const driftFactor = 1 + (Math.random() * 0.001 - 0.0005);
-        return Number((baseRate * driftFactor).toFixed(6));
+exports.getCurrency = getCurrency;
+const URL = 'https://api.frankfurter.dev/v2/rates?base=USD&quotes=' + currencies_json_1.default.filter(c => c.code !== 'USD').map(c => c.code).join(',');
+const unavailable = () => new errors_js_1.AppError('Current reference rates are unavailable. Please try again shortly.', 503, 'FX_UNAVAILABLE');
+class ReferenceRates {
+    fetcher;
+    clock;
+    cached;
+    pending;
+    constructor(fetcher = (...args) => fetch(...args), clock = () => Date.now()) {
+        this.fetcher = fetcher;
+        this.clock = clock;
     }
-    /**
-     * Computes fees and net receive amount in integer minor units
-     */
-    calculateQuote(sourceCurrency, targetCurrency, sendAmountMinor) {
-        if (sendAmountMinor <= 0) {
-            throw new errors_js_1.BadRequestError("Send amount must be greater than zero");
+    async latest() {
+        if (this.cached && this.clock() - this.cached.fetchedAt < 3600000)
+            return this.cached;
+        if (this.pending)
+            return this.pending;
+        this.pending = this.load().finally(() => { this.pending = undefined; });
+        return this.pending;
+    }
+    async load() {
+        try {
+            const response = await this.fetcher(URL, { signal: AbortSignal.timeout(8000) });
+            if (!response.ok)
+                throw unavailable();
+            const data = await response.json();
+            if (!Array.isArray(data))
+                throw unavailable();
+            const rates = { USD: 1 }, dates = {};
+            for (const value of data) {
+                const r = value;
+                if (r.base !== 'USD' || !currencies_json_1.default.some(c => c.code === r.quote) || r.quote === 'USD' || rates[r.quote] !== undefined || !Number.isFinite(r.rate) || r.rate <= 0 || r.rate > 1000000 || !/^\d{4}-\d{2}-\d{2}$/.test(r.date))
+                    throw unavailable();
+                const age = this.clock() - Date.parse(r.date + 'T00:00:00Z');
+                if (!Number.isFinite(age) || age > 7 * 86400000 || age < -86400000)
+                    throw unavailable();
+                rates[r.quote] = r.rate;
+                dates[r.quote] = r.date;
+            }
+            if (currencies_json_1.default.some(c => !rates[c.code]))
+                throw unavailable();
+            dates.USD = Object.values(dates).sort()[0];
+            this.cached = { rates, dates, fetchedAt: this.clock() };
+            return this.cached;
         }
-        const sCurr = sourceCurrency.toUpperCase();
-        const tCurr = targetCurrency.toUpperCase();
-        const flatFee = FLAT_FEE_MINOR[sCurr] ?? 200;
-        const percentageFee = Math.round(sendAmountMinor * PERCENTAGE_FEE_RATE);
-        const totalFeeMinor = flatFee + percentageFee;
-        if (sendAmountMinor <= totalFeeMinor) {
-            throw new errors_js_1.BadRequestError(`Send amount (${sendAmountMinor} minor units) must exceed minimum fees (${totalFeeMinor} minor units)`);
+        catch {
+            throw unavailable();
         }
-        const netConvertibleMinor = sendAmountMinor - totalFeeMinor;
-        const rate = this.getRate(sCurr, tCurr);
-        const receiveAmountMinor = Math.round(netConvertibleMinor * rate);
-        return {
-            sourceCurrency: sCurr,
-            targetCurrency: tCurr,
-            sendAmountMinor,
-            feeMinor: totalFeeMinor,
-            netConvertibleMinor,
-            exchangeRate: rate,
-            receiveAmountMinor
-        };
+    }
+}
+exports.ReferenceRates = ReferenceRates;
+exports.referenceRates = new ReferenceRates();
+// Integer arithmetic prevents zero/three-decimal currencies from inheriting a 100x scale.
+function convertMinor(amount, rate, fromDecimals, toDecimals) {
+    const scale = 1000000000000n;
+    const numerator = BigInt(amount) * BigInt(Math.round(rate * Number(scale))) * 10n ** BigInt(toDecimals);
+    const denominator = scale * 10n ** BigInt(fromDecimals);
+    const result = Number((numerator + denominator / 2n) / denominator);
+    if (!Number.isSafeInteger(result) || result < 0)
+        throw new errors_js_1.BadRequestError('Converted amount is outside the supported range.');
+    return result;
+}
+class FxService {
+    provider;
+    constructor(provider = exports.referenceRates) {
+        this.provider = provider;
+    }
+    async calculateQuote(sourceCurrency, targetCurrency, sendAmountMinor) {
+        const source = (0, exports.getCurrency)(sourceCurrency), target = (0, exports.getCurrency)(targetCurrency);
+        if (source.code === target.code)
+            throw new errors_js_1.BadRequestError('Choose two different currencies.');
+        if (!Number.isSafeInteger(sendAmountMinor) || sendAmountMinor <= 0 || sendAmountMinor > 1000000 * 10 ** source.decimals)
+            throw new errors_js_1.BadRequestError('Enter a valid amount of no more than 1,000,000 source currency units.');
+        const feeMinor = source.flatFeeMinor + Math.floor((sendAmountMinor + 100) / 200);
+        if (sendAmountMinor <= feeMinor)
+            throw new errors_js_1.BadRequestError('The sending amount must exceed the transfer fee.');
+        const snapshot = await this.provider.latest();
+        const exchangeRate = Number((snapshot.rates[target.code] / snapshot.rates[source.code]).toFixed(12));
+        const receiveAmountMinor = convertMinor(sendAmountMinor - feeMinor, exchangeRate, source.decimals, target.decimals);
+        if (receiveAmountMinor < 1)
+            throw new errors_js_1.BadRequestError('Increase the amount so the recipient receives at least one minor currency unit.');
+        return { sourceCurrency: source.code, targetCurrency: target.code, sendAmountMinor, feeMinor, netConvertibleMinor: sendAmountMinor - feeMinor, exchangeRate, receiveAmountMinor,
+            rateProvider: 'Frankfurter', rateDate: [snapshot.dates[source.code], snapshot.dates[target.code]].sort()[0],
+            sendAedMinor: convertMinor(sendAmountMinor, snapshot.rates.AED / snapshot.rates[source.code], source.decimals, 2) };
     }
 }
 exports.FxService = FxService;

@@ -148,7 +148,7 @@ exports.transfersRouter.post("/:id/deposit", auth_js_1.requireAuth, async (req, 
             metadata: {
                 depositedAmountMinor: transfer.send_amount_minor,
                 sourceCurrency: transfer.source_currency,
-                bankReference: req.body.bankReference || `MOCK-UAE-BANK-${Date.now()}`
+                bankReference: req.body.bankReference || `DEMO-${transfer.source_currency}-BANK-${Date.now()}`
             }
         });
         res.status(200).json({

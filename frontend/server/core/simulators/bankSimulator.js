@@ -23,7 +23,7 @@ class BankSimulator {
                 failureReason: "Beneficiary bank account invalid or frozen"
             };
         }
-        const payoutRef = `IMPS-${Date.now()}-${node_crypto_1.default.randomBytes(3).toString("hex").toUpperCase()}`;
+        const payoutRef = `${targetCurrency === "INR" ? "IMPS" : "DEMO-" + targetCurrency}-${Date.now()}-${node_crypto_1.default.randomBytes(3).toString("hex").toUpperCase()}`;
         logger_js_1.logger.info({
             transferId,
             amountMinor,

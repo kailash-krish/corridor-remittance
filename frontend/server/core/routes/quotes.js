@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.quotesRouter = void 0;
 const express_1 = require("express");
 const zod_1 = require("zod");
+const fxService_js_1 = require("../services/fxService.js");
 const quoteService_js_1 = require("../services/quoteService.js");
 const auth_js_1 = require("../middleware/auth.js");
 const errors_js_1 = require("../utils/errors.js");
@@ -11,7 +12,17 @@ const createQuoteSchema = zod_1.z.object({
     sourceCurrency: zod_1.z.string().min(3).max(3),
     targetCurrency: zod_1.z.string().min(3).max(3),
     // Integer minor units (e.g. 10000 = 100.00 AED)
-    sendAmountMinor: zod_1.z.number().int().positive()
+    sendAmountMinor: zod_1.z.number().int().safe().positive()
+});
+// Public estimate uses the same calculator as the locked quote, without saving visitor data.
+exports.quotesRouter.get('/estimate', async (req, res, next) => {
+    try {
+        const parsed = createQuoteSchema.parse({ sourceCurrency: req.query.source, targetCurrency: req.query.target, sendAmountMinor: Number(req.query.amount) });
+        res.json({ data: await fxService_js_1.fxService.calculateQuote(parsed.sourceCurrency, parsed.targetCurrency, parsed.sendAmountMinor) });
+    }
+    catch (error) {
+        next(error);
+    }
 });
 // POST /quotes: Create locked FX quote
 exports.quotesRouter.post("/", auth_js_1.requireAuth, async (req, res, next) => {
@@ -56,6 +67,8 @@ exports.quotesRouter.get("/", auth_js_1.requireAuth, async (req, res, next) => {
 exports.quotesRouter.get("/:id", auth_js_1.requireAuth, async (req, res, next) => {
     try {
         const quote = await quoteService_js_1.quoteService.getQuote(req.params.id);
+        if (quote.user_id !== req.user?.id)
+            throw new errors_js_1.BadRequestError("Quote unavailable.");
         res.status(200).json({
             data: quote
         });

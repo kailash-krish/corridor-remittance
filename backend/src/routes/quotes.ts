@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
+import { fxService } from "../services/fxService.js";
 import { quoteService } from "../services/quoteService.js";
 import { requireAuth } from "../middleware/auth.js";
 import { BadRequestError } from "../utils/errors.js";
@@ -10,9 +11,16 @@ const createQuoteSchema = z.object({
   sourceCurrency: z.string().min(3).max(3),
   targetCurrency: z.string().min(3).max(3),
   // Integer minor units (e.g. 10000 = 100.00 AED)
-  sendAmountMinor: z.number().int().positive()
+  sendAmountMinor: z.number().int().safe().positive()
 });
 
+// Public estimate uses the same calculator as the locked quote, without saving visitor data.
+quotesRouter.get('/estimate', async (req,res,next)=>{
+  try {
+    const parsed=createQuoteSchema.parse({sourceCurrency:req.query.source,targetCurrency:req.query.target,sendAmountMinor:Number(req.query.amount)});
+    res.json({data:await fxService.calculateQuote(parsed.sourceCurrency,parsed.targetCurrency,parsed.sendAmountMinor)});
+  } catch(error){next(error)}
+});
 // POST /quotes: Create locked FX quote
 quotesRouter.post(
   "/",
@@ -71,6 +79,7 @@ quotesRouter.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const quote = await quoteService.getQuote(req.params.id);
+      if(quote.user_id!==req.user?.id)throw new BadRequestError("Quote unavailable.");
       res.status(200).json({
         data: quote
       });

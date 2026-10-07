@@ -1,6 +1,6 @@
 # Corridor
 
-An AED-to-INR remittance prototype, built from the supplied Next.js frontend and Express backend. The working project lives here, separately from the original GDGOC folders.
+A multi-currency remittance prototype, built from the supplied Next.js frontend and Express backend. The working project lives here, separately from the original GDGOC folders.
 
 Live demo: https://corridor-remittance.vercel.app
 
@@ -46,7 +46,7 @@ This is still a demo, even when using the optimized build. It does not implement
 1. Open the homepage and try the illustrative calculator.
 2. Select **Try a transfer**, enter a fictional display name, and start a demo session.
 3. Open **Your identity**. Use a fictional name and test ID such as `DEMO123456`.
-4. Open **Send money**, request an AED quote, enter a fictional recipient and UPI ID, and review.
+4. Open **Send money**, choose a currency pair and request a quote, enter a fictional recipient and UPI ID for INR, or a demo bank-account reference for other currencies, and review.
 5. Quotes expire after 60 seconds. Refresh an expired quote before confirming.
 6. Confirm the demo transfer, then select **Simulate deposit**.
 7. Inspect the resulting event timeline and transfer history.
@@ -70,7 +70,7 @@ Tools:
 | Tool | Behavior |
 | --- | --- |
 | `service_health` | Check API health |
-| `create_quote` | Create a 60-second simulated AED-to-INR quote using integer fils |
+| `create_quote` | Create a 60-second reference-rate quote using source-currency minor units |
 | `list_transfers` | Read transfers owned by the token's user |
 | `get_transfer` | Read an owned transfer and its events |
 | `identity_status` | Read status without exposing identity fields |
@@ -180,3 +180,13 @@ Live verification passed on 7 October 2026: all five public/application pages, o
 ## Source ZIP
 
 The release ZIP contains frontend, backend, optional blockchain contracts and chain service, MCP server, design skill, tests, lockfiles, and this guide. Dependencies, local credentials, Git/Vercel metadata, caches, and stale deployment staging are excluded. After extracting it, use `npm run setup` and `npm run dev`. The optional chain service has its own README and is not required for the hosted simulated demo.
+
+## Multi-currency reference rates
+
+Supported currencies: AED, INR, USD, EUR, GBP, CAD, AUD, SGD, JPY, and KWD. Both selectors work across all 90 distinct pairs. Frankfurter v2 supplies daily USD-based reference rates; the server computes cross-rates, shows the observation date, and locks each demo quote for 60 seconds. This is daily reference data, not intraday pricing or a bank execution rate. See https://frankfurter.dev/ for the API and provider terms. No API key is required.
+
+Requests contain currency codes only. Rates are cached in each running server instance for one hour, concurrent fetches share one request, and provider failures or data older than seven days block new quotes. There is no fabricated-rate fallback. Existing locked quotes retain their saved rate and expiry. The fee is 0.5% plus the explicit per-currency flat fee in `backend/src/config/currencies.json`. JPY has zero decimal places, KWD three, and the other enabled currencies two; conversion rounds once to target minor units. Demo AML amount rules use the AED equivalent locked with each new quote.
+
+The globe centers a great-circle route between representative cities for the selected currencies, moves its endpoint labels with the markers, and honors reduced motion. EUR uses Frankfurt, Germany as its representative location and demo payout destination; the label does not imply that a currency is used in only one country. Currency changes discard the old quote and recipient payment fields. History formats each transfer using its own saved currencies.
+
+Verification: 51 backend tests, five hosted persistence tests, all 90 globe route pairs, amount precision tests, MCP compatibility, TypeScript checks and the production build. Run `npm run test:currency` for geometry and amount-format checks. Live checks also exercise the actual rate API and JPY/KWD simulated payouts after deployment.

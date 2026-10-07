@@ -43,6 +43,12 @@ class TransferOrchestrator {
      * Initializes transfer from a locked, valid FX quote
      */
     async createTransfer(input) {
+        // Validate the non-INR demo payout details before consuming the quote.
+        const candidate = await quoteService_js_1.quoteService.getQuote(input.quoteId);
+        if (candidate.user_id !== input.userId)
+            throw new errors_js_1.BadRequestError('Quote does not belong to authenticated user');
+        if (candidate.target_currency !== 'INR' && !/^[a-zA-Z0-9 -]{4,34}$/.test(input.recipientDetails.account_number || ''))
+            throw new errors_js_1.BadRequestError('A fictional bank account reference is required for this currency.');
         // 1. Validate & lock the quote (throws if expired or already consumed)
         const quote = await quoteService_js_1.quoteService.validateAndConsumeQuote(input.quoteId, input.userId);
         const now = new Date().toISOString();
@@ -57,6 +63,9 @@ class TransferOrchestrator {
             receive_amount_minor: quote.receive_amount_minor,
             fee_minor: quote.fee_minor,
             exchange_rate: quote.exchange_rate,
+            rate_provider: quote.rate_provider,
+            rate_date: quote.rate_date,
+            send_aed_minor: quote.send_aed_minor,
             sender_account_id: input.senderAccountId || null,
             recipient_details: input.recipientDetails,
             blockchain_tx_hash: null,
@@ -307,7 +316,7 @@ class TransferOrchestrator {
             throw new errors_js_1.NotFoundError(`Transfer not found: ${transferId}`);
         }
         if (payload.mode === "success") {
-            const ref = payload.payoutReference || `IMPS-${Date.now()}`;
+            const ref = payload.payoutReference || `DEMO-${transfer.target_currency}-${Date.now()}`;
             await repository_js_1.db.transfers.update(transferId, {
                 payout_reference: ref
             });
@@ -360,7 +369,7 @@ class TransferOrchestrator {
             metadata: {
                 refundedAmountMinor: failedTransfer.send_amount_minor,
                 currency: failedTransfer.source_currency,
-                reason: "Payout rail exhausted; funds refunded to sender UAE account"
+                reason: "Payout rail exhausted; funds refunded to sender account"
             }
         });
     }

@@ -1,0 +1,122 @@
+[
+  {
+    "code": "AED",
+    "name": "UAE dirham",
+    "plural": "dirhams",
+    "country": "United Arab Emirates",
+    "countryCode": "ARE",
+    "city": "Dubai",
+    "lat": 25.2048,
+    "lon": 55.2708,
+    "decimals": 2,
+    "flatFeeMinor": 500
+  },
+  {
+    "code": "INR",
+    "name": "Indian rupee",
+    "plural": "rupees",
+    "country": "India",
+    "countryCode": "IND",
+    "city": "Kochi",
+    "lat": 9.9312,
+    "lon": 76.2673,
+    "decimals": 2,
+    "flatFeeMinor": 10000
+  },
+  {
+    "code": "USD",
+    "name": "US dollar",
+    "plural": "US dollars",
+    "country": "United States",
+    "countryCode": "USA",
+    "city": "New York",
+    "lat": 40.7128,
+    "lon": -74.006,
+    "decimals": 2,
+    "flatFeeMinor": 200
+  },
+  {
+    "code": "EUR",
+    "name": "Euro",
+    "plural": "euros",
+    "country": "Germany",
+    "countryCode": "DEU",
+    "city": "Frankfurt",
+    "lat": 50.1109,
+    "lon": 8.6821,
+    "decimals": 2,
+    "flatFeeMinor": 200
+  },
+  {
+    "code": "GBP",
+    "name": "British pound",
+    "plural": "pounds",
+    "country": "United Kingdom",
+    "countryCode": "GBR",
+    "city": "London",
+    "lat": 51.5074,
+    "lon": -0.1278,
+    "decimals": 2,
+    "flatFeeMinor": 150
+  },
+  {
+    "code": "CAD",
+    "name": "Canadian dollar",
+    "plural": "Canadian dollars",
+    "country": "Canada",
+    "countryCode": "CAN",
+    "city": "Toronto",
+    "lat": 43.6532,
+    "lon": -79.3832,
+    "decimals": 2,
+    "flatFeeMinor": 250
+  },
+  {
+    "code": "AUD",
+    "name": "Australian dollar",
+    "plural": "Australian dollars",
+    "country": "Australia",
+    "countryCode": "AUS",
+    "city": "Sydney",
+    "lat": -33.8688,
+    "lon": 151.2093,
+    "decimals": 2,
+    "flatFeeMinor": 250
+  },
+  {
+    "code": "SGD",
+    "name": "Singapore dollar",
+    "plural": "Singapore dollars",
+    "country": "Singapore",
+    "countryCode": "SGP",
+    "city": "Singapore",
+    "lat": 1.3521,
+    "lon": 103.8198,
+    "decimals": 2,
+    "flatFeeMinor": 250
+  },
+  {
+    "code": "JPY",
+    "name": "Japanese yen",
+    "plural": "yen",
+    "country": "Japan",
+    "countryCode": "JPN",
+    "city": "Tokyo",
+    "lat": 35.6762,
+    "lon": 139.6503,
+    "decimals": 0,
+    "flatFeeMinor": 200
+  },
+  {
+    "code": "KWD",
+    "name": "Kuwaiti dinar",
+    "plural": "dinars",
+    "country": "Kuwait",
+    "countryCode": "KWT",
+    "city": "Kuwait City",
+    "lat": 29.3759,
+    "lon": 47.9774,
+    "decimals": 3,
+    "flatFeeMinor": 500
+  }
+]

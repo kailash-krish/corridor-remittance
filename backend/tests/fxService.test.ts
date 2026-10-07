@@ -1,0 +1,18 @@
+import {describe,it,expect,vi} from 'vitest';
+import {ReferenceRates,FxService,currencies,convertMinor} from '../src/services/fxService.js';
+import {ruleAmountOverThreshold,ruleNewAccountLargeAmount,ruleStructuring} from '../src/services/amlRules.js';
+import type {Transfer} from '../src/db/types.js';
+const now=Date.parse('2026-10-07T12:00:00Z');
+const values={AED:3.6725,INR:96.43,EUR:.88985,GBP:.75409,CAD:1.4224,AUD:1.4349,SGD:1.2784,JPY:158.21,KWD:.3088};
+const rows=Object.entries(values).map(([quote,rate])=>({base:'USD',quote,rate,date:'2026-10-07'}));
+const provider=(data:unknown=rows)=>new ReferenceRates(vi.fn(async()=>new Response(JSON.stringify(data))) as typeof fetch,()=>now);
+describe('Daily multi-currency reference quotes',()=>{
+ it('calculates every supported pair, same dates, and correct currency scales',async()=>{const fx=new FxService(provider());for(const a of currencies)for(const b of currencies){if(a.code===b.code)continue;const q=await fx.calculateQuote(a.code,b.code,1000*10**a.decimals);expect(q.sourceCurrency).toBe(a.code);expect(q.targetCurrency).toBe(b.code);expect(q.rateDate).toBe('2026-10-07');expect(q.receiveAmountMinor).toBe(Math.round((q.sendAmountMinor-q.feeMinor)/10**a.decimals*q.exchangeRate*10**b.decimals));expect(q.rateProvider).toBe('Frankfurter');expect(q.sendAedMinor).toBeGreaterThan(0)}});
+ it('rounds across 0, 2 and 3 decimal currencies',()=>{expect(convertMinor(10000,150,2,0)).toBe(15000);expect(convertMinor(15000,.002,0,3)).toBe(30000);expect(convertMinor(1,1.5,0,0)).toBe(2)});
+ it('keeps the AED fee unchanged and rejects invalid/same currency/unsafe amounts',async()=>{const fx=new FxService(provider());expect((await fx.calculateQuote('aed','inr',100000)).feeMinor).toBe(1000);for(const [s,t,n] of [['XXX','INR',10000],['USD','USD',10000],['AED','INR',2],['JPY','USD',1000001],['USD','JPY',1.5],['USD','JPY',Number.MAX_SAFE_INTEGER]] as const)await expect(fx.calculateQuote(s,t,n)).rejects.toThrow();});
+ it('deduplicates concurrent fetches and caches for one hour',async()=>{let calls=0;const fetcher=async()=>{calls++;return new Response(JSON.stringify(rows))};const p=new ReferenceRates(fetcher as typeof fetch,()=>now);await Promise.all([p.latest(),p.latest(),p.latest()]);await p.latest();expect(calls).toBe(1)});
+ it('fails closed on missing, stale, future, duplicate or invalid provider data',async()=>{for(const data of [[],{},rows.slice(1),[...rows,rows[0]],rows.map(r=>({...r,rate:-1})),rows.map(r=>({...r,date:'2026-01-01'})),rows.map(r=>({...r,date:'2099-01-01'}))])await expect(provider(data).latest()).rejects.toMatchObject({statusCode:503})});
+ it('handles timeout/HTTP errors and never falls back to fabricated rates',async()=>{for(const fetcher of [async()=>{throw new Error('timeout')},async()=>new Response('{}',{status:429})])await expect(new ReferenceRates(fetcher as typeof fetch,()=>now).latest()).rejects.toMatchObject({code:'FX_UNAVAILABLE'})});
+ it('does not serve an expired cache after a failed refresh',async()=>{let clock=now,fail=false;const p=new ReferenceRates((async()=>{if(fail)throw new Error('down');return new Response(JSON.stringify(rows))}) as typeof fetch,()=>clock);await p.latest();clock+=3600001;fail=true;await expect(p.latest()).rejects.toMatchObject({statusCode:503})});
+ it('screens all source currencies using the locked AED equivalent',()=>{const t={id:'test',source_currency:'JPY',send_amount_minor:100000,send_aed_minor:5100000} as Transfer;expect(ruleAmountOverThreshold(t).score).toBe(40);expect(ruleNewAccountLargeAmount({...t,send_aed_minor:500},1).score).toBe(0);expect(ruleStructuring({...t,send_aed_minor:4500000},[{...t,id:'other',source_currency:'KWD',send_aed_minor:4400000}]).score).toBe(45)});
+});

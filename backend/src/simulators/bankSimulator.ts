@@ -33,7 +33,7 @@ export class BankSimulator {
       };
     }
 
-    const payoutRef = `IMPS-${Date.now()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
+    const payoutRef = `${targetCurrency==="INR"?"IMPS":"DEMO-"+targetCurrency}-${Date.now()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
     logger.info(
       {
         transferId,

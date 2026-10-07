@@ -1,0 +1,7 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';
+import {currencies,toMinor,money} from '../frontend/src/lib/remittance/currency.ts';
+import {makeRoute,locationVector} from '../frontend/src/lib/remittance/globe-route.mjs';
+import {readFileSync} from 'node:fs';
+test('amount entry respects precision and rejects implicit rounding',()=>{assert.equal(toMinor('12.345','KWD'),12345);assert.equal(toMinor('123','JPY'),123);assert.equal(toMinor('1.25','USD'),125);for(const [n,c] of [['1.1','JPY'],['1.234','USD'],['-1','USD'],['1e3','USD'],['','USD']])assert.equal(toMinor(n,c),null);assert.match(money(12345,'KWD'),/12\.345/);assert.match(money(12345,'JPY'),/12,345/)});
+test('every globe pair has geographic endpoints, an above-surface arc and visible centered markers',()=>{for(const from of currencies)for(const to of currencies){if(from.code===to.code)continue;const r=makeRoute(from,to);assert.ok(r.curve.getPoint(0).distanceTo(locationVector(from))<1e-8);assert.ok(r.curve.getPoint(1).distanceTo(locationVector(to))<1e-8);for(let i=0;i<=100;i++)assert.ok(r.curve.getPoint(i/100).length()>=1.939999);assert.ok(r.start.clone().applyQuaternion(r.orientation).z>0);assert.ok(r.end.clone().applyQuaternion(r.orientation).z>0)}});
+test('frontend and backend currency catalogs are identical',()=>assert.deepEqual(currencies,JSON.parse(readFileSync(new URL('../backend/src/config/currencies.json',import.meta.url),'utf8'))));

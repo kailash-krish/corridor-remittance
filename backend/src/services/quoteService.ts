@@ -24,7 +24,7 @@ export class QuoteService {
    * Generates, locks, and persists an FX quote for 60 seconds
    */
   public async createQuote(input: CreateQuoteInput): Promise<QuoteResponse> {
-    const calc = fxService.calculateQuote(
+    const calc = await fxService.calculateQuote(
       input.sourceCurrency,
       input.targetCurrency,
       input.sendAmountMinor
@@ -42,6 +42,9 @@ export class QuoteService {
       receive_amount_minor: calc.receiveAmountMinor,
       fee_minor: calc.feeMinor,
       exchange_rate: calc.exchangeRate,
+      rate_provider: calc.rateProvider,
+      rate_date: calc.rateDate,
+      send_aed_minor: calc.sendAedMinor,
       expires_at: expiresAt.toISOString(),
       is_consumed: false,
       consumed_at: null,

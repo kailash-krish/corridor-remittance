@@ -4,8 +4,9 @@ import {RotateCcw,MoveHorizontal,Pause,Play} from 'lucide-react';
 import * as THREE from 'three';
 
 /** Original geometry. No remote model, tracking embed, or third-party scene dependency. */
-export default function TransferObject({phase=0,compact=false}:{phase?:number;compact?:boolean}) {
+export default function TransferObject({phase=0,compact=false,source='AED',destination='INR'}:{phase?:number;compact?:boolean;source?:string;destination?:string}) {
  const host=useRef<HTMLDivElement>(null);
+ const codes=useRef({source,destination});codes.current={source,destination};
  const target=useRef(phase);const interaction=useRef({x:0,y:0,paused:false});
  const [ready,setReady]=useState(false);const [paused,setPaused]=useState(false);
  useEffect(()=>{target.current=phase},[phase]);
@@ -29,7 +30,7 @@ export default function TransferObject({phase=0,compact=false}:{phase?:number;co
   const texture=new THREE.CanvasTexture(face);texture.colorSpace=THREE.SRGBColorSpace;
   const front=new THREE.Mesh(new THREE.CircleGeometry(.81,64),new THREE.MeshBasicMaterial({map:texture,transparent:true}));front.position.z=.09;token.add(front);
   function drawFace(label:string){if(!ctx)return;ctx.clearRect(0,0,512,512);ctx.textAlign='center';ctx.fillStyle='#e8edcd';ctx.font='500 110px sans-serif';ctx.fillText(label,256,284);ctx.font='20px sans-serif';ctx.fillStyle='#adc6a6';ctx.fillText('C O R R I D O R',256,355);ctx.strokeStyle='#8da78c';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(125,154);ctx.lineTo(387,154);ctx.stroke();texture.needsUpdate=true;}
-  let label='AED';drawFace(label);
+  let label=codes.current.source;drawFace(label);
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');let frame=0,visible=true,dragging=false,startX=0,startY=0,last=0,current=phase;
   const resize=()=>{const w=el.clientWidth,h=el.clientHeight;if(!w||!h)return;renderer.setSize(w,h);camera.aspect=w/h;camera.position.z=w/h<.8?10:8.5;camera.updateProjectionMatrix()};const ro=new ResizeObserver(resize);ro.observe(el);resize();
   const observer=new IntersectionObserver(([entry])=>{visible=entry.isIntersecting});observer.observe(el);
@@ -44,11 +45,11 @@ export default function TransferObject({phase=0,compact=false}:{phase?:number;co
    // Show the correct face on both sides during the middle escrow phase.
    front.rotation.y=current>.5&&current<1.5?Math.PI:0;front.position.z=current>.5&&current<1.5?-.09:.09;
    rings[0].rotation.y=.55-current*.7; rings[1].rotation.z=current*.7+(moving?time*.18:0);orbit.rotation.copy(rings[1].rotation);
-   const next=current<.55?'AED':current<1.5?'RMTS':'INR';if(next!==label){label=next;drawFace(label)}
+   const next=current<.55?codes.current.source:current<1.5?'RMTS':codes.current.destination;if(next!==label){label=next;drawFace(label)}
    renderer.render(scene,camera);
   };frame=requestAnimationFrame(render);setReady(true);
   return()=>{cancelAnimationFrame(frame);ro.disconnect();observer.disconnect();el.removeEventListener('pointerdown',down);el.removeEventListener('pointermove',move);el.removeEventListener('pointerup',up);el.removeEventListener('pointercancel',up);el.removeEventListener('keydown',key);const materials=new Set<THREE.Material>();scene.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>materials.add(m))}});materials.forEach(m=>m.dispose());texture.dispose();renderer.dispose();renderer.domElement.remove()};
  // Scene lifetime is independent of the phase, which is updated through a ref.
  },[]);
- return <div className={`transfer-object ${compact?'compact':''}`}><div className="object-aura"/><div ref={host} className="object-canvas" tabIndex={0} role="group" aria-label="Interactive 3D transfer token. Drag or use arrow keys to rotate. Home resets the view."/>{!ready&&<div className="object-fallback" aria-hidden="true"><span>{phase<.5?'AED':phase<1.5?'RMTS':'INR'}</span></div>}<div className="object-controls"><span><MoveHorizontal size={13}/>Drag to explore</span><button type="button" aria-label="Reset 3D object rotation" onClick={()=>{interaction.current.x=0;interaction.current.y=0}}><RotateCcw size={14}/></button><button type="button" aria-label={paused?'Resume 3D motion':'Pause 3D motion'} aria-pressed={paused} onClick={()=>{interaction.current.paused=!paused;setPaused(!paused)}}>{paused?<Play size={14}/>:<Pause size={14}/>}</button></div></div>
+ return <div className={`transfer-object ${compact?'compact':''}`}><div className="object-aura"/><div ref={host} className="object-canvas" tabIndex={0} role="group" aria-label="Interactive 3D transfer token. Drag or use arrow keys to rotate. Home resets the view."/>{!ready&&<div className="object-fallback" aria-hidden="true"><span>{phase<.5?source:phase<1.5?'RMTS':destination}</span></div>}<div className="object-controls"><span><MoveHorizontal size={13}/>Drag to explore</span><button type="button" aria-label="Reset 3D object rotation" onClick={()=>{interaction.current.x=0;interaction.current.y=0}}><RotateCcw size={14}/></button><button type="button" aria-label={paused?'Resume 3D motion':'Pause 3D motion'} aria-pressed={paused} onClick={()=>{interaction.current.paused=!paused;setPaused(!paused)}}>{paused?<Play size={14}/>:<Pause size={14}/>}</button></div></div>
 }
